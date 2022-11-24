@@ -27,7 +27,7 @@ public class EventBusFactory {
      * @return A new EventBus Instance.
      */
     public static EventBus getDefaultEventBus() {
-        return new SyncEventBus(new EventBusConfig(EventBusConfig.EventBusType.SYNC,
-                "Default"));
+        var eventBusConfig = new EventBusConfig(EventBusConfig.EventBusType.SYNC, "Default");
+        return createEventBusFromConfig(eventBusConfig);
     }
 }

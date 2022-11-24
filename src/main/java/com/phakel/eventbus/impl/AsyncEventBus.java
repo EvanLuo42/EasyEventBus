@@ -1,10 +1,9 @@
 package com.phakel.eventbus.impl;
 
 import com.phakel.config.EventBusConfig;
+import com.phakel.event.BaseEvent;
+import com.phakel.event.Listener;
 import com.phakel.eventbus.EventBus;
-
-import java.lang.reflect.Method;
-import java.util.Map;
 
 /**
  * An asynchronous EventBus implementation.
@@ -22,22 +21,17 @@ public class AsyncEventBus implements EventBus {
     }
 
     @Override
-    public void registerListener(Object listener) {
+    public void registerListener(Listener listener) {
 
     }
 
     @Override
-    public void unregisterListener(Object listener) {
+    public void unregisterListener(Listener listener) {
 
     }
 
     @Override
-    public Map<Method, Object> getAllListeners() {
-        return null;
-    }
-
-    @Override
-    public void broadcast(Object event) {
+    public void broadcast(BaseEvent event) {
 
     }
 }

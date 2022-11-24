@@ -1,7 +1,7 @@
 package com.phakel.eventbus;
 
-import java.lang.reflect.Method;
-import java.util.Map;
+import com.phakel.event.BaseEvent;
+import com.phakel.event.Listener;
 
 /**
  * An Interface for EventBus. <br/>
@@ -13,23 +13,17 @@ public interface EventBus {
      * Register a listener
      * @param listener Listener waiting for registering.
      */
-    void registerListener(Object listener);
+    void registerListener(Listener listener);
 
     /**
      * Unregister a listener.
      * @param listener Listener waiting for unregistering.
      */
-    void unregisterListener(Object listener);
-
-    /**
-     * Return all registered listener.
-     * @return All listeners registered.
-     */
-    Map<Method, Object> getAllListeners();
+    void unregisterListener(Listener listener);
 
     /**
      * Broadcast an event to all listeners.
      * @param event Event waiting for broadcasting.
      */
-    void broadcast(Object event);
+    void broadcast(BaseEvent event);
 }

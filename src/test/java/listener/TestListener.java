@@ -1,7 +1,7 @@
 package listener;
 
-import com.phakel.event.BaseEvent;
 import com.phakel.event.Listener;
+import com.phakel.event.Subscribe;
 import com.phakel.event.Priority;
 import event.TestEvent;
 import org.apache.log4j.Logger;
@@ -9,11 +9,10 @@ import org.apache.log4j.Logger;
 /**
  * @author EvanLuo42
  */
-public class TestListener implements BaseEvent {
-    private final Logger logger = Logger.getLogger(TestListener.class);
+public class TestListener implements Listener {
     public String eventName = "";
 
-    @Listener(event = TestEvent.class, priority = Priority.MONITOR)
+    @Subscribe(priority = Priority.HIGH)
     public void onTestEvent(TestEvent testEvent) {
         eventName = testEvent.name;
     }

@@ -1,11 +1,12 @@
 package com.phakel.eventbus.impl;
 
 import com.phakel.config.EventBusConfig;
-import com.phakel.event.Listener;
+import com.phakel.event.*;
 import com.phakel.eventbus.EventBus;
 import org.apache.log4j.Logger;
 
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,16 +15,20 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author EvanLuo42
  */
 public class SyncEventBus implements EventBus {
+
     /**
      * EventBus Name
      */
     public String name;
+
     private static final Logger logger = Logger.getLogger(SyncEventBus.class);
+
+    private final MethodHandles.Lookup lookup = MethodHandles.publicLookup();
 
     /**
      * Map of Listeners
      */
-    private final Map<Method, Object> listeners = new ConcurrentHashMap<>();
+    private final Map<MethodHandle, Priority> listeners = new ConcurrentHashMap<>();
 
     /**
      * Constructor for SyncEventBus.
@@ -31,53 +36,66 @@ public class SyncEventBus implements EventBus {
      */
     public SyncEventBus(EventBusConfig config) {
         this.name = config.name();
-        logger.debug(SyncEventBus.class.getName() + " created");
+        logger.info("EventBus " + this.name + " created");
     }
 
     @Override
-    public void registerListener(Object listener) {
-        Arrays.stream(listener.getClass().getMethods()).forEach(method -> {
-            if (method.isAnnotationPresent(Listener.class)) {
-                listeners.put(method, listener);
-                logger.debug(method.getName() + " registered");
+    public void registerListener(Listener listener) {
+        var methodsStream = Arrays.stream(listener.getClass().getMethods());
+
+        methodsStream.forEach(method -> {
+            if (method.isAnnotationPresent(Subscribe.class)) {
+                try {
+                    var handle = lookup.unreflect(method);
+                    logger.debug("MethodHandle " + handle.getClass().getName() + " unreflected.");
+                    handle = handle.bindTo(listener);
+
+                    var priority = method.getAnnotation(Subscribe.class).priority();
+                    listeners.put(handle, priority);
+                    logger.info("MethodHandle " + method.getName() + " registered");
+                } catch (IllegalAccessException e) {
+                    logger.error(e.getCause());
+                }
             }
         });
     }
 
     @Override
-    public void unregisterListener(Object listener) {
-        Arrays.stream(listener.getClass().getMethods()).forEach(method -> {
-            if (method.isAnnotationPresent(Listener.class)) {
-                listeners.remove(method);
-                logger.debug(method.getName() + " unregistered");
+    public void unregisterListener(Listener listener) {
+        var methodsStream = Arrays.stream(listener.getClass().getMethods());
+
+        methodsStream.forEach(method -> {
+            if (method.isAnnotationPresent(Subscribe.class)) {
+                try {
+                    var methodHandle = lookup.unreflect(method).bindTo(listener);
+                    listeners.remove(methodHandle);
+                    logger.info("MethodHandle " + method.getName() + " unregistered");
+                } catch (IllegalAccessException e) {
+                    logger.error(e.getCause());
+                }
             }
         });
     }
 
     @Override
-    public Map<Method, Object> getAllListeners() {
-        return listeners;
-    }
-
-    @Override
-    public void broadcast(Object event) {
+    public void broadcast(BaseEvent event) {
         listeners
                 .entrySet()
                 .stream()
-                .sorted(
-                        // Ascending sort the Method Handles by their priority.
-                        Comparator.comparingInt(o ->
-                                o.getKey()
-                                        .getAnnotation(Listener.class)
-                                        .priority()
-                                        .ordinal()
-                        )
+                .filter(methodHandle -> methodHandle.getKey()
+                        .type()
+                        .parameterList()
+                        .stream()
+                        .findFirst()
+                        .map(eventType -> eventType.equals(event.getClass()))
+                        .orElse(false)
                 )
-                .forEach(method -> {
+                .sorted(Comparator.comparingInt(methodEntry -> methodEntry.getValue().ordinal()))
+                .forEach(methodHandle -> {
                     try {
-                        // Invoke all Method Handles
-                        method.getKey().invoke(method.getValue(), event);
-                    } catch (Exception e) {
+                        methodHandle.getKey().invoke(event);
+                        logger.info("Event " + event.getClass().getName() + " broadcast");
+                    } catch (Throwable e) {
                         logger.error(e.getCause());
                     }
                 });
